@@ -16,27 +16,17 @@ stream_handler = logging.StreamHandler()
 logger.addHandler(stream_handler)
 
 
-class Address():
-    """
-    Location information for a project or client.
-    """
-
-    def __init__(self, addr1=None, addr2=None, csz=None):
-        self.addr1 = addr1
-        self.addr2 = addr2
-        self.csz = csz
-
-
 class Contact():
     """
     Information on a person.
     """
 
     def __init__(self, name=None, title=None,
-                 address=None, phone=None, email=None):
+                 address=None, csz=None, phone=None, email=None):
         self.name = name
         self.title = title
         self.address = address
+        self.csz = csz
         self.phone = phone
         self.email = email
 
@@ -59,8 +49,19 @@ class Project():
         self.billing_contact = Contact()
         self.project_contact = Contact()
         self.is_live = False  # Set to true when matched to an actual project
+        self.mode = None
         # List of all folders in PROJECT_ROOT
         self.folder_list = os.listdir(PROJECT_ROOT)
+
+    def from_folder(self, folder_name):
+        """
+        Set project number and name from a folder name.
+        """
+        self.folder = folder_name
+        num, *name = folder_name.split(' ')
+        self.number = num
+        self.name = ' '.join(name)
+        return self.number, self.name
 
     def get_full_number(self):
         """Return the combination of year and number as a string"""
@@ -71,12 +72,23 @@ class Project():
             return ""
 
     def get_full_name(self):
+        if self.folder:
+            return self.folder
         if self.year and self.number and self.name:
             fn = self.get_full_number()
-            return f"{fn} {self.name}"
+            self.folder = f"{fn} {self.name}"
+            return self.folder
         else:
             logger.error("Project has no name")
             return ""
+
+    def match_folder(self, search_str):
+        """
+        Return a list of folders that contain the search string.
+        """
+        folder_list = os.listdir(PROJECT_ROOT)
+        return [x for x in folder_list
+                if x.upper().count(search_str.upper()) > 0]
 
     def next_project_number(self):
         """
@@ -84,7 +96,8 @@ class Project():
         and return the next number up as a 2 or 3 digit string..
         """
         pnum = str(datetime.datetime.now().year)
-        fileList = [f for f in self.folder_list if f[:4] == pnum]
+        folder_list = os.listdir(PROJECT_ROOT)
+        fileList = [f for f in folder_list if f[:4] == pnum]
         try:
             latestProject = sorted(fileList, reverse=True)[0]
             projectNumber = int(latestProject[5: 8])
@@ -113,7 +126,7 @@ class Project():
             pname = pname.lstrip(' -')
             return pname
         else:
-            logger.error(f"Project {ns} not found")
+            logger.info(f"Project {ns} not found")
             return False
 
     def path_to_project(self):
@@ -122,13 +135,20 @@ class Project():
         """
         if self.year and self.number:
             if self.name:
-                file_name = self.get_full_name()
+                name = self.get_full_name()
             else:
                 name = self.name_from_number()
             if name:
-                p = os.path.join(PROJECT_ROOT,
-                                 self.full_number + self.name)
-                return p
+                return os.path.join(PROJECT_ROOT, name)
+
+    def start_new(self):
+        """
+        Initial setup for a new project. Return next project number.
+        """
+        self.mode = "Create"
+        self.year = CURRENT_YEAR
+        self.number = self.next_project_number()
+        return self.get_full_number()
 
     def load_project(self):
         """
@@ -151,6 +171,30 @@ class Project():
         except FileNotFoundError:
             logger.error(f"Project spreadsheet not found: {fileName}")
             return False
+
+    def validate(self):
+        """
+        Check the data in the record before writing changes.
+        """
+        if self.mode == 'Create':
+            if self.year != CURRENT_YEAR:
+                logger.error("Incorrect year")
+                return False
+            if len(self.name) < 3:
+                logger.error("Project name too short")
+                return False
+            if len(self.project_manager) < 3:
+                logger.error("Check Project Manager name")
+                return False
+            if len(self.scope) < 10:
+                logger.error("Provide scope description")
+                return False
+            if os.exists(self.path_to_project()):
+                logger.error("Project exists")
+                return False
+            if self.name_from_number():
+                logger.error("Project number is already in use")
+                return False
 
 
 def getProjectData(app):
