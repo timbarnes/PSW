@@ -165,7 +165,7 @@ class Application(wx.Frame):
         self.sb.SetStatusText(message, field)
         wx.MessageBox(message, 'Error', wx.ICON_ERROR | wx.OK)
 
-    def popup_list(self, position, fields):
+    def popup_list(self, prompt, position, fields):
         """
         Popup a list of fields at position, and return the one selected.
         """
@@ -175,7 +175,7 @@ class Application(wx.Frame):
             print(item)
             m_item = self.menu.Append(-1, item)
             self.panel.Bind(wx.EVT_MENU, self.on_menu, m_item)
-        self.msg("Pick a project")
+        self.msg(prompt)
         self.panel.PopupMenu(self.menu, position)
 
     def on_menu(self, event):
@@ -227,7 +227,7 @@ class Application(wx.Frame):
             self.error("Too many results. Try again")
         else:
             pos = self.ScreenToClient(wx.GetMousePosition())
-            proj = self.popup_list(pos, results)
+            proj = self.popup_list("Select a project", pos, results)
             if proj:
                 num, name = self.project.from_folder(proj)
                 self.projectNumber.SetValue(num)
