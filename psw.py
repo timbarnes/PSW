@@ -63,7 +63,7 @@ class Application(wx.Frame):
         label = wx.StaticText(self.panel, label="Search:")
         self.sizer.Add(label, pos=(row, 0), flag=wx.ALL, border=4)
         self.searchString = wx.TextCtrl(self.panel)
-        # self.searchString.Bind(wx.EVT_KEY_DOWN, self.on_search)
+        self.searchString.Bind(wx.EVT_KEY_DOWN, self.on_check_search)
         self.sizer.Add(self.searchString, pos=(row, 1),  span=(0, 2),
                        flag=wx.EXPAND | wx.ALL, border=5)
         self.searchButton = wx.Button(self.panel, label="Find Project")
@@ -81,7 +81,7 @@ class Application(wx.Frame):
         self.sizer.Add(self.projectName, pos=(row, 2),  span=(0, 3),
                        flag=wx.EXPAND | wx.ALL, border=5)
         row += 1
-        self.projectManager = single_line(row, "Project Manager:")
+        self.projectManager = single_line(row, "Project Manager:", self.clean)
         row += 1
         label = wx.StaticText(self.panel, label="Project Type:")
         self.sizer.Add(label, pos=(row, 0), flag=wx.ALL, border=4)
@@ -98,38 +98,38 @@ class Application(wx.Frame):
         label = wx.StaticText(self.panel, label="PROJECT INFORMATION")
         self.sizer.Add(label, pos=(row, 1), span=(0, 3), flag=wx.EXPAND)
         row += 1
-        self.scope = single_line(row, "Project Scope:")
+        self.scope = single_line(row, "Project Scope:", self.clean)
         # Needs to be set to be multiline
         self.scope.SetMinSize(wx.Size(70, 70))
         row += 1
-        self.contactName = single_line(row, "Project Contact:")
+        self.contactName = single_line(row, "Project Contact:", self.clean)
         row += 1
-        self.contactTitle = single_line(row, "  Contact Title:")
+        self.contactTitle = single_line(row, "  Contact Title:", self.clean)
         row += 1
         self.contactPhone = single_line(row, "  Contact phone")
         row += 1
-        self.contactEmail = single_line(row, "  Contact email")
+        self.contactEmail = single_line(row, "  Contact email", self.clean)
         row += 1
-        self.contactAddress = single_line(row, "  Project Address:")
+        self.contactAddress = single_line(row, "  Project Address:", self.clean)
         row += 1
-        self.contactCSZ = single_line(row, "  City / State / Zip:")
+        self.contactCSZ = single_line(row, "  City / State / Zip:", self.clean)
         row += 1
         self.sizer.Add(wx.StaticLine(self.panel), pos=(row, 0), span=(1, 4))
         row += 1
         label = wx.StaticText(self.panel, label="BILLING INFORMATION")
         self.sizer.Add(label, pos=(row, 1), span=(0, 3), flag=wx.EXPAND)
         row += 1
-        self.billingName = single_line(row, "Billing Name:")
+        self.billingName = single_line(row, "Billing Name:", self.clean)
         row += 1
-        self.billingTitle = single_line(row, "  Billing Title:")
+        self.billingTitle = single_line(row, "  Billing Title:", self.clean)
         row += 1
-        self.billingPhone = single_line(row, "  Billing phone")
+        self.billingPhone = single_line(row, "  Billing phone", self.clean)
         row += 1
-        self.billingEmail = single_line(row, "  Billing email")
+        self.billingEmail = single_line(row, "  Billing email", self.clean)
         row += 1
-        self.billingAddress = single_line(row, "  Billing Address:")
+        self.billingAddress = single_line(row, "  Billing Address:", self.clean)
         row += 1
-        self.billingCSZ = single_line(row, "  City / State / Zip:")
+        self.billingCSZ = single_line(row, "  City / State / Zip:"), self.clean
         row += 1
         self.sizer.Add(wx.StaticLine(self.panel), pos=(row, 0), span=(1, 4))
 
@@ -189,12 +189,11 @@ class Application(wx.Frame):
         if self.project.number and self.project.name:
             # We have identified the project
             if self.project.load_project():
-                # We were successful
                 self.msg("Project loaded")
                 # Populate the GUI from the record
                 self.projectManager.SetValue(self.project.manager)
                 logger.debug(self.project.type)
-                t = ["None", "Revit", "CAD"].index(self.project.type)
+                t = ["Other", "Revit", "CAD"].index(self.project.type)
                 self.projectType.SetSelection(t)
                 self.scope.SetValue(self.project.scope)
                 self.contactName.SetValue(self.project.contact.name)
@@ -234,6 +233,12 @@ class Application(wx.Frame):
             self.error(f"Bad mode: {self.project.mode}")
         event.Skip()
 
+    def on_check_search(self, event):
+        if event.GetKeyCode() in [wx.WXK_RETURN, wx.WXK_TAB, wx.WXK_CONTROL_F]:
+            self.on_search(event)
+        else:
+            event.Skip()
+
     def on_search(self, event):
         """
         Search for and select a folder.
@@ -263,13 +268,26 @@ class Application(wx.Frame):
             self.project.name = self.projectName.GetValue()
             event.Skip()
 
+    def clean(self, event):
+        """
+        Cleans text fields.
+        """
+        val = event.GetKeyCode()
+        if val == wx.WXK_TAB:
+            ctl = wx.Window_FindFocus()
+            ctl.Navigate()
+        elif chr(val) in ps.BAD_CHARS:
+            pass
+        else:
+            event.Skip()
+
     def transfer_from_GUI(self):
         """
         Copy all the data from the GUI to the project record
         """
         self.project.name = self.projectName.GetValue()
         self.project.project_manager = self.projectManager.GetValue()
-        options = ['Empty', 'Revit', 'CAD']
+        options = ['Other', 'Revit', 'CAD']
         self.project.type = options[self.projectType.GetSelection()]
         self.project.scope = self.scope.GetValue()
         self.project.contact.name = self.contactName.GetValue()

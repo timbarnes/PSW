@@ -11,14 +11,16 @@ CURRENT_YEAR = str(datetime.datetime.now().year)   # This year
 PROJECT_ROOT = './Test'                        # Where we look (P drive)
 CAD_SOURCE = os.path.join(PROJECT_ROOT, 'CAD_Template')
 REVIT_SOURCE = os.path.join(PROJECT_ROOT, 'Revit_Template')
+DEFAULT_SOURCE = os.path.join(PROJECT_ROOT, 'Default_Template')
 INFO_FILE = 'Project_Information.xlsx'
+BAD_CHARS = ',;:"\'\\`~!$%^=!#&{}[]|<>?*/\t\n'
 
 logger = logging.getLogger('__name__')
 stream_handler = logging.StreamHandler()
 logger.addHandler(stream_handler)
 
 
-class Contact():
+class Person():
     """
     Information on a person.
     """
@@ -49,14 +51,12 @@ class Project():
         self.scope = None
         self.exists = None
         self.manager = None
-        self.billing = Contact()
-        self.contact = Contact()
+        self.billing = Person()
+        self.contact = Person()
         self.is_live = False  # Set to true when matched to an actual project
         self.workbook = None  # Store the openpyxl workbook handle
         self.mode = None
         self.fileError = None  # Find out why a file can't be locked
-        # List of all folders in PROJECT_ROOT
-        self.folder_list = os.listdir(PROJECT_ROOT)
 
     def from_folder(self, folder_name):
         """
@@ -124,7 +124,8 @@ class Project():
             logger.error("No number for name search")
             return ""
         length = len(ns)
-        pfolder = [x for x in FOLDER_LIST if x[: length] == ns]
+        folder_list = os.listdir(PROJECT_ROOT)
+        pfolder = [x for x in folder_list if x[: length] == ns]
         if (len(pfolder) == 1 and
                 os.path.isdir(os.path.join(PROJECT_ROOT, pfolder[0]))):
                 # We found the folder
@@ -217,6 +218,17 @@ class Project():
             logger.error(f"Unable to lock information file: {self.fileError}.")
             return False
 
+    def clean_data(self, data):
+        """
+        Sanitizes strings before writing to the database.
+        """
+        tr_table = str.maketrans('', '', BAD_CHARS)
+        clean = data.translate(tr_table)
+        if clean == data:
+            return True, clean
+        else:
+            return False, clean
+
     def validate(self):
         """
         Check the data in the record before writing changes.
@@ -243,9 +255,24 @@ class Project():
             return False, "Provide scope description"
         if self.contact.phone != "":
             try:
-                p = parse(self.contact.phone)
+                parse(self.contact.phone)
             except NumberParseException:
-                p = parse(self.contact.phone, 'US')
+                try:
+                    parse(self.contact.phone, 'US')
+                except NumberParseException:
+                    msg = f"Invalid phone number: {self.contact.phone}"
+                    logger.error(msg)
+                    return False, msg
+        if self.billing.phone != "":
+            try:
+                parse(self.billing.phone)
+            except NumberParseException:
+                try:
+                    parse(self.billing.phone, 'US')
+                except NumberParseException:
+                    msg = f"Invalid phone number: {self.billing.phone}"
+                    logger.error(msg)
+                    return False, msg
         if self.contact.email != "":
             if validate_email(self.contact.email):
                 pass
@@ -375,33 +402,6 @@ def createProject(app):
     except OSError as e:
         error("copyFiles: {}".format(e))
     FOLDER_LIST = os.listdir(PROJECT_ROOT)
-
-
-def modifyProject(app):
-    """
-    Alter project information for an existing project.
-    """
-    # check basic data is in place
-    # write updated information to the spreadsheet
-    print("Modify project {}".format(app.project_number.get()))
-    fileName = buildPath(app, INFO_FILE)
-    try:
-        print('Opening file: {}'.format(fileName))
-        pf = openpyxl.load_workbook(fileName)
-        sheet = pf.active
-        # app.project_name.set(sheet['B4'].value)
-        sheet['B6'].value = app.project_pm.get()
-        sheet['B7'].value = app.project_type.get()
-        sheet['B9'].value = app.project_addr.get()
-        sheet['B10'].value = app.project_csz.get()
-        sheet['B12'].value = app.billing_name.get()
-        sheet['B17'].value = app.billing_addr.get()
-        sheet['B18'].value = app.billing_csz.get()
-        pf.close()
-    except FileNotFoundError:
-        error("readProjectData: "
-              "Project spreadsheet not found: {}".format(fileName))
-    app.mode_label.set("// Project created. //")
 
 
 def checkNewProject(app):
