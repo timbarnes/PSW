@@ -97,7 +97,7 @@ class Project():
         return [x for x in folder_list
                 if x.upper().count(search_str.upper()) > 0]
 
-    def next_project_number(self):
+    def next_number(self):
         """
         Get the number of the most recent project,
         and return the next number up as a 2 or 3 digit string..
@@ -179,10 +179,10 @@ class Project():
         """
         self.mode = "Create"
         self.year = CURRENT_YEAR
-        self.number = self.next_project_number()
+        self.number = self.next_number()
         return self.get_full_number()
 
-    def open_project(self):
+    def open(self):
         """
         Open and lock the Project Information spreadsheet.
         """
@@ -203,7 +203,7 @@ class Project():
             logger.error(f"Unable to lock information file: {self.fileError}.")
             return False
 
-    def load_project(self):
+    def load(self):
         """
         Load project information from the folder and spreadsheet.
         File should have been opened already
@@ -305,13 +305,13 @@ class Project():
 
         return True, ""
 
-    def update_project(self):
+    def update(self):
         """
         Write out changes to the spreadsheet in an existing project.
         Assumes data is in the record and has been validated.
         """
         if self.mode == "Edit":
-            logger.debug("Called update_project")
+            logger.debug("Called update")
             sheet = self.workbook.active
             sheet['C6'].value = self.manager
             sheet['C8'].value = self.type
@@ -333,17 +333,17 @@ class Project():
             logger.debug("File written")
             return True
         else:
-            logger.error("update_project called in wrong mode.")
+            logger.error("update called in wrong mode.")
             return False
 
-    def close_project(self):
+    def close(self):
         """
         Close out the worksheet before exiting.
         """
         self.workbook.close()
         # TODO: unlock the file
 
-    def create_project(self):
+    def create(self):
         """
         Create a new project based on data provided in the project record.
         """
@@ -368,8 +368,8 @@ class Project():
                 logger.error(f"Failed to copy: {e}")
                 return
         self.mode = "Edit"  # We have created the folder tree, now can edit.
-        if self.open_project():
-            if self.update_project():
+        if self.open():
+            if self.update():
                 logger.info("Project information written successfully")
                 return True
             else:

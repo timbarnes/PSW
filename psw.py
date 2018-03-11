@@ -188,7 +188,7 @@ class Application(wx.Frame):
         self.searchString.Enable(True)
         if self.project.number and self.project.name:
             # We have identified the project
-            if self.project.load_project():
+            if self.project.open() and self.project.load():
                 self.msg("Project loaded")
                 # Populate the GUI from the record
                 self.projectManager.SetValue(self.project.manager)
@@ -225,10 +225,10 @@ class Application(wx.Frame):
             return
         if self.project.mode == 'Create':
             self.msg(f"Creating project {full_name}")
-            self.create_project()
+            self.create()
         elif self.project.mode == "Edit":
             self.msg(f"Updating project {full_name}")
-            self.project.update_project()
+            self.project.update()
         else:
             self.error(f"Bad mode: {self.project.mode}")
         event.Skip()
@@ -303,7 +303,7 @@ class Application(wx.Frame):
         self.project.billing.email = self.billingEmail.GetValue()
         self.project.billing.phone = self.billingPhone.GetValue()
 
-    def create_project(self):
+    def create(self):
         """
         Create the project folder and populate based on type.
         Add available data to the project info spreadsheet.
@@ -312,13 +312,13 @@ class Application(wx.Frame):
             self.transfer_from_GUI()
             valid, response = self.project.validate()
             if valid:
-                self.project.create_project()
+                self.project.create()
             else:
                 self.error(response)
         else:
             self.error("Mode error: Create called inappropriately")
 
-    def update_project(self):
+    def update(self):
         """
         Validate entries and update the spreadsheet.
         """
