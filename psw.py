@@ -129,7 +129,7 @@ class Application(wx.Frame):
         row += 1
         self.billingAddress = single_line(row, "  Billing Address:", self.clean)
         row += 1
-        self.billingCSZ = single_line(row, "  City / State / Zip:"), self.clean
+        self.billingCSZ = single_line(row, "  City / State / Zip:", self.clean)
         row += 1
         self.sizer.Add(wx.StaticLine(self.panel), pos=(row, 0), span=(1, 4))
 
@@ -274,7 +274,7 @@ class Application(wx.Frame):
         """
         val = event.GetKeyCode()
         if val == wx.WXK_TAB:
-            ctl = wx.Window_FindFocus()
+            ctl = self.panel.Window_FindFocus()
             ctl.Navigate()
         elif chr(val) in ps.BAD_CHARS:
             pass
@@ -286,7 +286,7 @@ class Application(wx.Frame):
         Copy all the data from the GUI to the project record
         """
         self.project.name = self.projectName.GetValue()
-        self.project.project_manager = self.projectManager.GetValue()
+        self.project.manager = self.projectManager.GetValue()
         options = ['Other', 'Revit', 'CAD']
         self.project.type = options[self.projectType.GetSelection()]
         self.project.scope = self.scope.GetValue()
@@ -308,23 +308,15 @@ class Application(wx.Frame):
         Create the project folder and populate based on type.
         Add available data to the project info spreadsheet.
         """
-        self.transfer_from_GUI()
-        if self.project.validate():
+        if self.project.mode == 'Create':
             self.transfer_from_GUI()
-        # Populate data from GUI
-        self.project.name = self.projectName.GetValue()
-        if len(self.project.name) < 3:
-            self.error("Check project name")
-            return False
-        # Now build the folder
-        try:
-            self.project.makeProjectFolder()
-        except Exception:
-            self.error(f"Unable to create {self.project.get_full_name()}")
-        # Copy the raw data from the template folder
-        # Fill the spreadsheet that should be already in the folder
-        # Name the billing spreadsheet
-        # Name the proposal fileEdited
+            valid, response = self.project.validate()
+            if valid:
+                self.project.create_project()
+            else:
+                self.error(response)
+        else:
+            self.error("Mode error: Create called inappropriately")
 
     def update_project(self):
         """

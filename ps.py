@@ -47,6 +47,7 @@ class Project():
         self.year = None
         self.number = None
         self.name = None
+        self.folder = None
         self.type = None
         self.scope = None
         self.exists = None
@@ -148,7 +149,9 @@ class Project():
             if name:
                 return os.path.join(PROJECT_ROOT, name)
             else:
-                logger.error("Unable to create project path")
+                msg = "Check project number and name"
+                logger.error(msg)
+                self.fileError = msg
                 return False
 
     def lockable(self, name):
@@ -179,43 +182,54 @@ class Project():
         self.number = self.next_project_number()
         return self.get_full_number()
 
-    def load_project(self):
+    def open_project(self):
         """
-        Load project information from the folder and spreadsheet.
+        Open and lock the Project Information spreadsheet.
         """
         filename = os.path.join(self.path_to_project(), INFO_FILE)
         logger.info(f"Opening file{filename}")
         if self.lockable(filename):
-            # We should lock the file
+            # TODO: We should lock the file
             try:
                 logger.debug(f"openpyxl is attempting to open {filename}")
                 self.workbook = openpyxl.load_workbook(filename)
-                sheet = self.workbook.active
-                self.manager = sheet['C6'].value
-                self.type = sheet['C8'].value
-                self.scope = sheet['C10'].value
-                self.contact.name = sheet['C12'].value
-                self.contact.title = sheet['C13'].value
-                self.contact.phone = sheet['C14'].value
-                self.contact.email = sheet['C15'].value
-                self.contact.address = sheet['C17'].value
-                self.contact.csz = sheet['C18'].value
-                self.billing.name = sheet['C20'].value
-                self.billing.title = sheet['C21'].value
-                self.billing.phone = sheet['C22'].value
-                self.billing.email = sheet['C23'].value
-                self.billing.address = sheet['C25'].value
-                self.billing.csz = sheet['C26'].value
-                # Keep it open for writing changes
-                # pf.close()
-                return True
             except Exception as e:
                 logger.error(f"Project spreadsheet open failed: {filename}")
                 logger.error(f"Error was: {e}")
                 self.fileError = str(e)
                 return False
+            return True
         else:
             logger.error(f"Unable to lock information file: {self.fileError}.")
+            return False
+
+    def load_project(self):
+        """
+        Load project information from the folder and spreadsheet.
+        File should have been opened already
+        """
+        try:
+            sheet = self.workbook.active
+            self.manager = sheet['C6'].value
+            self.type = sheet['C8'].value
+            self.scope = sheet['C10'].value
+            self.contact.name = sheet['C12'].value
+            self.contact.title = sheet['C13'].value
+            self.contact.phone = sheet['C14'].value
+            self.contact.email = sheet['C15'].value
+            self.contact.address = sheet['C17'].value
+            self.contact.csz = sheet['C18'].value
+            self.billing.name = sheet['C20'].value
+            self.billing.title = sheet['C21'].value
+            self.billing.phone = sheet['C22'].value
+            self.billing.email = sheet['C23'].value
+            self.billing.address = sheet['C25'].value
+            self.billing.csz = sheet['C26'].value
+            return True
+        except Exception as e:
+            logger.error(f"Project spreadsheet write failed")
+            logger.error(f"Error was: {e}")
+            self.fileError = str(e)
             return False
 
     def clean_data(self, data):
@@ -237,8 +251,11 @@ class Project():
             if self.year != CURRENT_YEAR:
                 logger.error("Should reference current year")
                 return False, "Should reference current year"
-            if os.exists(self.path_to_project()):
-                logger.error("Project exists")
+            path = self.path_to_project()
+            if not path:
+                return False, self.fileError
+            if os.path.exists(self.path_to_project()):
+                logger.error(f"Project exists {self.path_to_project()}")
                 return False, "Project exists, cannot create"
             if self.name_from_number():
                 logger.error("Project number is already in use")
@@ -248,8 +265,8 @@ class Project():
             logger.error("Project name too short")
             return False, "Project name too short"
         if len(self.manager) < 3:
-            logger.error("Project Manager name too short")
-            return False, "Project Manager name too short"
+            logger.error("Check Project Manager name")
+            return False, "Check Project Manager name"
         if len(self.scope) < 10:
             logger.error("Provide scope description")
             return False, "Provide scope description"
@@ -293,151 +310,70 @@ class Project():
         Write out changes to the spreadsheet in an existing project.
         Assumes data is in the record and has been validated.
         """
-        logger.debug("Called update_project")
-        sheet = self.workbook.active
-        sheet['C6'].value = self.manager
-        sheet['C8'].value = self.type
-        sheet['C10'].value = self.scope
-        sheet['C12'].value = self.contact.name
-        sheet['C13'].value = self.contact.title
-        sheet['C14'].value = self.contact.phone
-        sheet['C15'].value = self.contact.email
-        sheet['C17'].value = self.contact.address
-        sheet['C18'].value = self.contact.csz
-        sheet['C20'].value = self.billing.name
-        sheet['C21'].value = self.billing.title
-        sheet['C22'].value = self.billing.phone
-        sheet['C23'].value = self.billing.email
-        sheet['C25'].value = self.billing.address
-        sheet['C26'].value = self.billing.csz
-        filename = os.path.join(self.path_to_project(), INFO_FILE)
-        self.workbook.save(filename)
-        logger.debug("File written")
+        if self.mode == "Edit":
+            logger.debug("Called update_project")
+            sheet = self.workbook.active
+            sheet['C6'].value = self.manager
+            sheet['C8'].value = self.type
+            sheet['C10'].value = self.scope
+            sheet['C12'].value = self.contact.name
+            sheet['C13'].value = self.contact.title
+            sheet['C14'].value = self.contact.phone
+            sheet['C15'].value = self.contact.email
+            sheet['C17'].value = self.contact.address
+            sheet['C18'].value = self.contact.csz
+            sheet['C20'].value = self.billing.name
+            sheet['C21'].value = self.billing.title
+            sheet['C22'].value = self.billing.phone
+            sheet['C23'].value = self.billing.email
+            sheet['C25'].value = self.billing.address
+            sheet['C26'].value = self.billing.csz
+            filename = os.path.join(self.path_to_project(), INFO_FILE)
+            self.workbook.save(filename)
+            logger.debug("File written")
+            return True
+        else:
+            logger.error("update_project called in wrong mode.")
+            return False
 
     def close_project(self):
         """
         Close out the worksheet before exiting.
         """
         self.workbook.close()
+        # TODO: unlock the file
 
-
-# def getProjectData(app):
-#     """
-#     Get information for a given project and instantiate in the GUI.
-#     Return False if there's no such project.
-#     """
-#     pnum = app.project_number.get()
-#     length = len(pnum)
-#     pfolder = [x for x in FOLDER_LIST if x[: length] == pnum]
-#     if (len(pfolder) == 1 and
-#             os.path.isdir(os.path.join(PROJECT_ROOT, pfolder[0]))):
-#             # We found the folder
-#         pname = pfolder[0][9:]
-#         pname = pname.lstrip(' -')
-#         self.project_name = pname
-#         self.load_project()
-#         return (pfolder[0], pnum, pname)
-#     else:
-#         logger.error(f"getProjectData: No such project: {pnum}")
-#         return False
-#
-#
-# def makeProjectFolder(app):
-#     """
-#     Create the project name and create the folder for it.
-#     Assumes data has been validated.
-#     """
-#     pass
-#
-#
-# def setMode(app, mode):
-#     """
-#     Sets the mode to 'create' or 'modify' based on button press.
-#     """
-#     if mode == 'create':
-#         app.next_pnum = f"{CURRENT_YEAR}.{getProjectNumber()}"
-#         app.project_number.set(app.next_pnum)
-#         app.project_number.state = 'disabled'
-#         app.mode_label.set("// New project - enter name, type, and PM. //")
-#         app.createButton.config(highlightbackground='#FF6600')
-#         app.updateButton.config(highlightbackground='#AAAAAA')
-#     elif mode == 'modify':
-#         getProjectData(app)
-#         app.mode_label.set("// Update project - revise information. //")
-#         app.createButton.config(highlightbackground='#AAAAAA')
-#         app.updateButton.config(highlightbackground='#FF6600')
-#     else:
-#         error('setMode: Invalid mode: {}'.format(mode))
-#         return
-#     app.mode = mode
-
-
-def createProject(app):
-    """
-    Create a new project using pre-validated information.
-    """
-    global FOLDER_LIST  # We'll update it if successful with the new folder.
-
-    if not app.mode == 'create':
-        error('createProject: Mode not set to create')
-        return  # We shouldn't have been called
-
-    print(("Creating Project '{} {}'"
-           " for {}.").format(app.project_number.get(),
-                              app.project_name.get(),
-                              app.project_pm.get()))
-    new_folder = buildPath(app)
-
-    project_type = app.project_type.get()
-    print("Project type is: {}".format(project_type))
-    print("Folder is: {}".format(new_folder))
-    try:
-        if project_type == 'CAD':
-            shutil.copytree(CAD_SOURCE, new_folder)
-        elif project_type == 'Revit':
-            shutil.copytree(REVIT_SOURCE, new_folder)
+    def create_project(self):
+        """
+        Create a new project based on data provided in the project record.
+        """
+        if self.mode != "Create":
+            logger.error("Should be called only in Create mode")
+            return
+        logger.info(f"Creating new project {self.number}")
+        # Create the folder after checking it doesn't exist
+        new_folder = self.path_to_project()
+        if os.path.exists(new_folder):
+            logger.error("Project folder exists - can't create.")
+            return
         else:
-            # 02 Folder only
-            pass
-    except OSError as e:
-        error("copyFiles: {}".format(e))
-    FOLDER_LIST = os.listdir(PROJECT_ROOT)
-
-
-def checkNewProject(app):
-    """
-    Check project name and PM data prior to creating a project.
-    Project number was set when create mode was invoked.
-    """
-    pname = app.project_name.get()
-    tr_table = str.maketrans('', '', ',;:"\'\\`~!%^#&{}|<>?*/')
-    clean_name = pname.translate(tr_table)
-    clean_name = clean_name.strip('_ .\t\n-')
-    if clean_name != pname:
-        error("Name cannot contain special characters")
-        return False
-    if len(clean_name) < 6:
-        error("Project name too short.")
-        return False
-    app.project_pm.set(app.project_pm.get().strip(' \t\n-'))
-    if len(app.project_pm.get()) < 3:
-        error("Enter a valid project manager name")
-        return False
-    if not app.project_type.get() in ['Revit', 'CAD', 'Other']:
-        error("Select a project type (CAD, Revit or Other)")
-        return False
-    app.mode_label.set("// Mode: CREATE - Ready to GO. //")
-    return True
-
-
-def write(app):
-    """
-    Writes to file system based on the current mode.
-    """
-    if app.mode == 'create':
-        if checkNewProject(app):
-            createProject(app)
-    elif app.mode == 'modify':
-        modifyProject(app)
-    else:
-        error("Invalid mode: {}".format(app.mode))
+            try:    # Copy from the relevant template to the new folder
+                if self.type == 'CAD':
+                    shutil.copytree(CAD_SOURCE, new_folder)
+                elif self.type == 'Revit':
+                    shutil.copytree(REVIT_SOURCE, new_folder)
+                else:  # Default to default type
+                    shutil.copytree(DEFAULT_SOURCE, new_folder)
+            except OSError as e:
+                logger.error(f"Failed to copy: {e}")
+                return
+        self.mode = "Edit"  # We have created the folder tree, now can edit.
+        if self.open_project():
+            if self.update_project():
+                logger.info("Project information written successfully")
+                return True
+            else:
+                logger.error("Unable to write project information")
+                return False
+        else:
+            logger.error("Unable to open project information file")
