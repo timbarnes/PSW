@@ -43,13 +43,15 @@ class Project():
         self.year = None
         self.number = None
         self.name = None
-        self.project_type = None
+        self.type = None
+        self.scope = None
         self.exists = None
-        self.project_manager = None
+        self.manager = None
         self.billing_contact = Contact()
         self.project_contact = Contact()
         self.is_live = False  # Set to true when matched to an actual project
         self.mode = None
+        self.fileError = None  # Find out why a file can't be locked
         # List of all folders in PROJECT_ROOT
         self.folder_list = os.listdir(PROJECT_ROOT)
 
@@ -59,9 +61,10 @@ class Project():
         """
         self.folder = folder_name
         num, *name = folder_name.split(' ')
-        self.number = num
+        self.year = num.split('.')[0]
+        self.number = num.split('.')[1]
         self.name = ' '.join(name)
-        return self.number, self.name
+        return self.year, self.number, self.name
 
     def get_full_number(self):
         """Return the combination of year and number as a string"""
@@ -140,6 +143,28 @@ class Project():
                 name = self.name_from_number()
             if name:
                 return os.path.join(PROJECT_ROOT, name)
+            else:
+                logger.error("Unable to create project path")
+                return False
+
+    def lockable(self, name):
+        """
+        Determine if the file is present and can be locked. No side effects.
+        """
+        logger.debug(f'Checking lock on file: {name}')
+        if not os.path.isfile(name):
+            self.fileError = "File does not exist."
+            logger.error("lockable: File does not exist")
+            return False
+        # Check for an Excel lock file
+        dir, file = os.path.split(name)
+        lock_file = f"~${file}"
+        lock_path = os.path.join(dir, lock_file)
+        if os.path.isfile(lock_path):
+            self.fileError = "File is locked by Excel"
+            return False
+        else:
+            return True
 
     def start_new(self):
         """
@@ -154,22 +179,40 @@ class Project():
         """
         Load project information from the folder and spreadsheet.
         """
-        filename = self.path_to_project() + '/' + INFO_FILE
+        filename = os.path.join(self.path_to_project(), INFO_FILE)
         logger.info(f"Opening file{filename}")
-        try:
-            pf = openpyxl.load_workbook(filename)
-            sheet = pf.active
-            self.project_manager = sheet['B6'].value
-            self.project_type = sheet['B7'].value
-            self.project_contact.address.addr1 = sheet['B9'].value
-            self.project_contact.address.csz = sheet['B10'].value
-            self.billing_contact.name = sheet['B12'].value
-            # app.billing_title.set(sheet['B13'].value)
-            self.billing_contact.address.addr1 = sheet['B17'].value
-            self.billing_contact.address.csz = sheet['B18'].value
-            pf.close()
-        except FileNotFoundError:
-            logger.error(f"Project spreadsheet not found: {fileName}")
+        if self.lockable(filename):
+            # We should lock the file
+            try:
+                logger.debug(f"openpyxl is attempting to open {filename}")
+                pf = openpyxl.load_workbook(filename)
+                sheet = pf.active
+                self.manager = sheet['C6'].value
+                self.type = sheet['C8'].value
+                self.scope = sheet['C10'].value
+                self.project_contact.name = sheet['C12'].value
+                self.project_contact.title = sheet['C13'].value
+                self.project_contact.phone = sheet['C14'].value
+                self.project_contact.email = sheet['C15'].value
+                self.project_contact.address = sheet['C17'].value
+                self.project_contact.csz = sheet['C18'].value
+
+                self.billing_contact.name = sheet['C21'].value
+                self.billing_contact.title = sheet['C22'].value
+                self.billing_contact.phone = sheet['C23'].value
+                self.billing_contact.email = sheet['C24'].value
+                self.billing_contact.address = sheet['C26'].value
+                self.billing_contact.csz = sheet['C27'].value
+                # Keep it open for writing changes
+                # pf.close()
+                return True
+            except Exception as e:
+                logger.error(f"Project spreadsheet open failed: {filename}")
+                logger.error(f"Error was: {e}")
+                self.fileError = str(e)
+                return False
+        else:
+            logger.error(f"Unable to lock information file: {self.fileError}.")
             return False
 
     def validate(self):

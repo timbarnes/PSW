@@ -53,7 +53,7 @@ class Application(wx.Frame):
         self.newButton = wx.Button(self.panel, label="Create New Project")
         self.newButton.Bind(wx.EVT_BUTTON, self.on_new)
         self.sizer.Add(self.newButton, pos=(row, 1), flag=wx.ALL, border=5)
-        self.editButton = wx.Button(self.panel, label="Edit Project Info.")
+        self.editButton = wx.Button(self.panel, label="Load Project Info.")
         self.editButton.Bind(wx.EVT_BUTTON, self.on_edit)
         self.sizer.Add(self.editButton, pos=(row, 2), flag=wx.ALL, border=5)
         self.updateButton = wx.Button(self.panel, label="GO")
@@ -181,8 +181,8 @@ class Application(wx.Frame):
     def on_menu(self, event):
         logger.debug("Called on_menu")
         item = self.menu.FindItemById(event.GetId())
-        num, name = self.project.from_folder(item.GetText())
-        self.projectNumber.SetValue(num)
+        year, num, name = self.project.from_folder(item.GetText())
+        self.projectNumber.SetValue(f"{year}.{num}")
         self.projectName.SetValue(name)
         logger.debug(item.GetText())
 
@@ -201,8 +201,34 @@ class Application(wx.Frame):
         self.mode = 'Edit'
         self.searchButton.Enable(True)
         self.searchString.Enable(True)
-        self.msg("Enter text to search")
-        event.Skip()
+        if self.project.number and self.project.name:
+            # We have identified the project
+            if self.project.load_project():
+                # We were successful
+                self.msg("Project loaded")
+                # Populate the GUI from the record
+                self.projectManager.SetValue(self.project.manager)
+                logger.debug(self.project.type)
+                t = ["None", "Revit", "CAD"].index(self.project.type)
+                self.projectType.SetSelection(t)
+                self.scope.SetValue(self.project.scope)
+                self.contactName.SetValue(self.project.project_contact.name)
+                self.contactTitle.SetValue(self.project.project_contact.title)
+                self.contactPhone.SetValue(self.project.project_contact.phone)
+                self.contactEmail.SetValue(self.project.project_contact.email)
+                self.contactAddress.SetValue(self.project.project_contact.address)
+                self.contactCSZ.SetValue(self.project.project_contact.csz)
+                self.billingName.SetValue(self.project.billing_contact.name)
+                self.billingTitle.SetValue(self.project.billing_contact.title)
+                self.billingPhone.SetValue(self.project.billing_contact.phone)
+                self.billingEmail.SetValue(self.project.billing_contact.email)
+                self.billingAddress.SetValue(self.project.billing_contact.address)
+                self.billingCSZ.SetValue(self.project.billing_contact.csz)
+                self.project.is_live = True
+            else:
+                self.error(self.project.fileError)
+        else:
+            self.error("Please select a project to load")
 
     def on_go(self, event):
         logger.debug("Called GO")
@@ -223,15 +249,13 @@ class Application(wx.Frame):
         logger.debug("Called Search")
         search_string = self.searchString.GetValue()
         results = self.project.match_folder(search_string)
+        logger.debug(results)
         if len(results) > 20:
             self.error("Too many results. Try again")
         else:
             pos = self.ScreenToClient(wx.GetMousePosition())
-            proj = self.popup_list("Select a project", pos, results)
-            if proj:
-                num, name = self.project.from_folder(proj)
-                self.projectNumber.SetValue(num)
-                self.projectName.SetValue(name)
+            # Put up the popup menu. Results captured in callback.
+            self.popup_list("Select a project", pos, results)
 
     def on_number(self, event):
         logger.debug("on_number")
