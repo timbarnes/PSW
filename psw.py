@@ -81,8 +81,7 @@ class Application(wx.Frame):
         self.sizer.Add(self.projectName, pos=(row, 2),  span=(0, 3),
                        flag=wx.EXPAND | wx.ALL, border=5)
         row += 1
-        self.projectManager = single_line(row, "Project Manager:",
-                                          self.on_project_manager)
+        self.projectManager = single_line(row, "Project Manager:")
         row += 1
         label = wx.StaticText(self.panel, label="Project Type:")
         self.sizer.Add(label, pos=(row, 0), flag=wx.ALL, border=4)
@@ -90,7 +89,7 @@ class Application(wx.Frame):
         self.projectType = wx.RadioBox(self.panel, choices=type_list,
                                        majorDimension=1,
                                        style=wx.RA_SPECIFY_ROWS)
-        self.projectType.Bind(wx.EVT_RADIOBUTTON, self.on_project_type)
+        # self.projectType.Bind(wx.EVT_RADIOBUTTON, self.on_project_type)
         self.sizer.Add(self.projectType, pos=(row, 1), span=(0, 4),
                        flag=wx.ALL, border=5)
         row += 1
@@ -99,51 +98,38 @@ class Application(wx.Frame):
         label = wx.StaticText(self.panel, label="PROJECT INFORMATION")
         self.sizer.Add(label, pos=(row, 1), span=(0, 3), flag=wx.EXPAND)
         row += 1
-        self.scope = single_line(row, "Project Scope:",
-                                 self.on_scope)
+        self.scope = single_line(row, "Project Scope:")
         # Needs to be set to be multiline
         self.scope.SetMinSize(wx.Size(70, 70))
         row += 1
-        self.contactName = single_line(row, "Project Contact:",
-                                       self.on_contact_name)
+        self.contactName = single_line(row, "Project Contact:")
         row += 1
-        self.contactTitle = single_line(row, "  Contact Title:",
-                                        self.on_contact_title)
+        self.contactTitle = single_line(row, "  Contact Title:")
         row += 1
-        self.contactAddress = single_line(row, "  Project Address:",
-                                          self.on_contact_address)
+        self.contactAddress = single_line(row, "  Project Address:")
         row += 1
-        self.contactCSZ = single_line(row, "  City / State / Zip:",
-                                      self.on_contact_csz)
+        self.contactCSZ = single_line(row, "  City / State / Zip:")
         row += 1
-        self.contactPhone = single_line(row, "  Contact phone",
-                                        self.on_contact_phone)
+        self.contactPhone = single_line(row, "  Contact phone")
         row += 1
-        self.contactEmail = single_line(row, "  Contact email",
-                                        self.on_contact_email)
+        self.contactEmail = single_line(row, "  Contact email")
         row += 1
         self.sizer.Add(wx.StaticLine(self.panel), pos=(row, 0), span=(1, 4))
         row += 1
         label = wx.StaticText(self.panel, label="BILLING INFORMATION")
         self.sizer.Add(label, pos=(row, 1), span=(0, 3), flag=wx.EXPAND)
         row += 1
-        self.billingName = single_line(row, "Billing Name:",
-                                       self.on_billing_name)
+        self.billingName = single_line(row, "Billing Name:")
         row += 1
-        self.billingTitle = single_line(row, "  Billing Title:",
-                                        self.on_billing_title)
+        self.billingTitle = single_line(row, "  Billing Title:")
         row += 1
-        self.billingAddress = single_line(row, "  Billing Address:",
-                                          self.on_billing_address)
+        self.billingAddress = single_line(row, "  Billing Address:")
         row += 1
-        self.billingCSZ = single_line(row, "  City / State / Zip:",
-                                      self.on_billing_csz)
+        self.billingCSZ = single_line(row, "  City / State / Zip:")
         row += 1
-        self.billingPhone = single_line(row, "  Billing phone",
-                                        self.on_billing_phone)
+        self.billingPhone = single_line(row, "  Billing phone")
         row += 1
-        self.billingEmail = single_line(row, "  Billing email",
-                                        self.on_billing_email)
+        self.billingEmail = single_line(row, "  Billing email")
         row += 1
         self.sizer.Add(wx.StaticLine(self.panel), pos=(row, 0), span=(1, 4))
 
@@ -276,83 +262,6 @@ class Application(wx.Frame):
         else:
             self.project.name = self.projectName.GetValue()
             event.Skip()
-
-    def on_project_manager(self, event):
-        logger.debug("on_project_manager")
-        self.project.manager = self.projectManager.GetValue()
-        event.Skip()
-
-    def on_project_type(self, event):
-        logger.debug("on_project_type")
-        # Get the index and set the type string
-        options = ['Other', 'Revit', 'CAD']
-        self.project.project_type = options[self.projectType.GetSelection()]
-
-    def on_scope(self, event):
-        logger.debug("on_scope")
-        self.project.scope = self.scope.GetValue()
-        logger.debug(f"Scope is {self.project.scope}")
-        event.Skip()
-
-    def on_contact_name(self, event):
-        logger.debug("on_contact_name")
-        self.project.project_contact.name = self.contactName.GetValue()
-        event.Skip()
-
-    def on_contact_title(self, event):
-        logger.debug("on_contact_title")
-        self.project.project_contact.title = self.contactTitle.GetValue()
-        event.Skip()
-
-    def on_contact_address(self, event):
-        logger.debug("on_contact_address")
-        self.project.project_contact.address = self.contactAddress.GetValue()
-        event.Skip()
-
-    def on_contact_csz(self, event):
-        logger.debug("on_contact_csz")
-        self.project.project_contact.csz = self.contactCSZ.GetValue()
-        event.Skip()
-
-    def on_contact_phone(self, event):
-        logger.debug("on_contact_phone")
-        self.project.project_contact.phone = self.contactPhone.GetValue()
-        event.Skip()
-
-    def on_contact_email(self, event):
-        logger.debug("on_contact_email")
-        self.project.project_contact.email = self.contactEmail.GetValue()
-        event.Skip()
-
-    def on_billing_name(self, event):
-        logger.debug("on_billing_name")
-        self.project.billing_contact.name = self.billingName.GetValue()
-        event.Skip()
-
-    def on_billing_title(self, event):
-        logger.debug("on_billing_title")
-        self.project.billing_contact.title = self.billingTitle.GetValue()
-        event.Skip()
-
-    def on_billing_address(self, event):
-        logger.debug("on_billing_address")
-        self.project.billing_contact.address = self.billingAddress.GetValue()
-        event.Skip()
-
-    def on_billing_csz(self, event):
-        logger.debug("on_billing_csz")
-        self.project.billing_contact.csz = self.billingCSZ.GetValue()
-        event.Skip()
-
-    def on_billing_phone(self, event):
-        logger.debug("on_billing_phone")
-        self.project.billing_contact.phone = self.billingPhone.GetValue()
-        event.Skip()
-
-    def on_billing_email(self, event):
-        logger.debug("on_billing_email")
-        self.project.billing_contact.email = self.billingEmail.GetValue()
-        event.Skip()
 
     def transfer_from_GUI(self):
         """
