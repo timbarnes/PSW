@@ -4,6 +4,8 @@ import shutil
 import datetime
 import openpyxl
 import logging
+from validate_email import validate_email
+from phonenumbers import parse, NumberParseException
 
 CURRENT_YEAR = str(datetime.datetime.now().year)   # This year
 PROJECT_ROOT = './Test'                        # Where we look (P drive)
@@ -221,74 +223,101 @@ class Project():
         """
         if self.mode == 'Create':
             if self.year != CURRENT_YEAR:
-                logger.error("Incorrect year")
-                return False
-            if len(self.name) < 3:
-                logger.error("Project name too short")
-                return False
-            if len(self.project_manager) < 3:
-                logger.error("Check Project Manager name")
-                return False
-            if len(self.scope) < 10:
-                logger.error("Provide scope description")
-                return False
+                logger.error("Should reference current year")
+                return False, "Should reference current year"
             if os.exists(self.path_to_project()):
                 logger.error("Project exists")
-                return False
+                return False, "Project exists, cannot create"
             if self.name_from_number():
                 logger.error("Project number is already in use")
-                return False
+                return False, "Project number is already in use"
+        # These tests apply to all
+        if len(self.name) < 3:
+            logger.error("Project name too short")
+            return False, "Project name too short"
+        if len(self.manager) < 3:
+            logger.error("Project Manager name too short")
+            return False, "Project Manager name too short"
+        if len(self.scope) < 10:
+            logger.error("Provide scope description")
+            return False, "Provide scope description"
+        if self.project_contact.phone != "":
+            try:
+                p = parse(self.project_contact.phone)
+            except NumberParseException:
+                p = parse(self.project_contact.phone, 'US')
+        if self.project_contact.email != "":
+            if validate_email(self.project_contact.email):
+                pass
+            else:
+                logger.error("Invalid project contact email address")
+                return False, "Invalid project contact email address"
+        if self.billing_contact.email != "":
+            if validate_email(self.billing_contact.email):
+                pass
+            else:
+                logger.error("Invalid billing contact email address")
+                return False, "Invalid billing contact email address"
+
+        return True, ""
+
+    def update_project(self):
+        """
+        Write out changes to the spreadsheet in an existing project.
+        """
+        logger.debug("Called update_project")
+        print(self.scope)
 
 
-def getProjectData(app):
-    """
-    Get information for a given project and instantiate in the GUI.
-    Return False if there's no such project.
-    """
-    pnum = app.project_number.get()
-    length = len(pnum)
-    pfolder = [x for x in FOLDER_LIST if x[: length] == pnum]
-    if (len(pfolder) == 1 and
-            os.path.isdir(os.path.join(PROJECT_ROOT, pfolder[0]))):
-            # We found the folder
-        pname = pfolder[0][9:]
-        pname = pname.lstrip(' -')
-        self.project_name = pname
-        self.load_project()
-        return (pfolder[0], pnum, pname)
-    else:
-        logger.error(f"getProjectData: No such project: {pnum}")
-        return False
-
-
-def makeProjectFolder(app):
-    """
-    Create the project name and create the folder for it.
-    Assumes data has been validated.
-    """
-    pass
-
-
-def setMode(app, mode):
-    """
-    Sets the mode to 'create' or 'modify' based on button press.
-    """
-    if mode == 'create':
-        app.next_pnum = f"{CURRENT_YEAR}.{getProjectNumber()}"
-        app.project_number.set(app.next_pnum)
-        app.project_number.state = 'disabled'
-        app.mode_label.set("// New project - enter name, type, and PM. //")
-        app.createButton.config(highlightbackground='#FF6600')
-        app.updateButton.config(highlightbackground='#AAAAAA')
-    elif mode == 'modify':
-        getProjectData(app)
-        app.mode_label.set("// Update project - revise information. //")
-        app.createButton.config(highlightbackground='#AAAAAA')
-        app.updateButton.config(highlightbackground='#FF6600')
-    else:
-        error('setMode: Invalid mode: {}'.format(mode))
-        return
-    app.mode = mode
+# def getProjectData(app):
+#     """
+#     Get information for a given project and instantiate in the GUI.
+#     Return False if there's no such project.
+#     """
+#     pnum = app.project_number.get()
+#     length = len(pnum)
+#     pfolder = [x for x in FOLDER_LIST if x[: length] == pnum]
+#     if (len(pfolder) == 1 and
+#             os.path.isdir(os.path.join(PROJECT_ROOT, pfolder[0]))):
+#             # We found the folder
+#         pname = pfolder[0][9:]
+#         pname = pname.lstrip(' -')
+#         self.project_name = pname
+#         self.load_project()
+#         return (pfolder[0], pnum, pname)
+#     else:
+#         logger.error(f"getProjectData: No such project: {pnum}")
+#         return False
+#
+#
+# def makeProjectFolder(app):
+#     """
+#     Create the project name and create the folder for it.
+#     Assumes data has been validated.
+#     """
+#     pass
+#
+#
+# def setMode(app, mode):
+#     """
+#     Sets the mode to 'create' or 'modify' based on button press.
+#     """
+#     if mode == 'create':
+#         app.next_pnum = f"{CURRENT_YEAR}.{getProjectNumber()}"
+#         app.project_number.set(app.next_pnum)
+#         app.project_number.state = 'disabled'
+#         app.mode_label.set("// New project - enter name, type, and PM. //")
+#         app.createButton.config(highlightbackground='#FF6600')
+#         app.updateButton.config(highlightbackground='#AAAAAA')
+#     elif mode == 'modify':
+#         getProjectData(app)
+#         app.mode_label.set("// Update project - revise information. //")
+#         app.createButton.config(highlightbackground='#AAAAAA')
+#         app.updateButton.config(highlightbackground='#FF6600')
+#     else:
+#         error('setMode: Invalid mode: {}'.format(mode))
+#         return
+#     app.mode = mode
 
 
 def createProject(app):

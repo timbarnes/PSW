@@ -16,10 +16,7 @@ class Application(wx.Frame):
         # Create the main frame
         wx.Frame.__init__(self, None, wx.ID_ANY,
                           'Studio G Project Editor', size=(550, 775))
-        # Create the communicating variables
-        self.mode = 'Edit'
         self.project = ps.Project()
-
         self.build_GUI()
 
     def build_GUI(self):
@@ -27,14 +24,15 @@ class Application(wx.Frame):
         Create all the elements of the UI and connect to variables.
         """
 
-        def single_line(row, label, callback):
+        def single_line(row, label, callback=None):
             """
             Make a line with StaticText and TextCtrl and callback.
             """
             prompt = wx.StaticText(self.panel, label=label)
             self.sizer.Add(prompt, pos=(row, 0), flag=wx.ALL, border=4)
             t = wx.TextCtrl(self.panel)
-            t.Bind(wx.EVT_KEY_DOWN, callback)
+            if callback:
+                t.Bind(wx.EVT_KEY_DOWN, callback)
             self.sizer.Add(t, pos=(row, 1), span=(0, 3),
                            flag=wx.EXPAND | wx.ALL, border=4)
             return t
@@ -103,6 +101,7 @@ class Application(wx.Frame):
         row += 1
         self.scope = single_line(row, "Project Scope:",
                                  self.on_scope)
+        # Needs to be set to be multiline
         self.scope.SetMinSize(wx.Size(70, 70))
         row += 1
         self.contactName = single_line(row, "Project Contact:",
@@ -198,7 +197,7 @@ class Application(wx.Frame):
 
     def on_edit(self, event):
         logger.debug("Setting mode to Edit")
-        self.mode = 'Edit'
+        self.project.mode = 'Edit'
         self.searchButton.Enable(True)
         self.searchString.Enable(True)
         if self.project.number and self.project.name:
@@ -234,12 +233,19 @@ class Application(wx.Frame):
         logger.debug("Called GO")
         self.project.name = self.projectName.GetValue()
         full_name = self.project.get_full_name()
+        self.transfer_from_GUI()
+        v, r = self.project.validate()
+        if not v:
+            self.error(r)
+            return
         if self.project.mode == 'Create':
             self.msg(f"Creating project {full_name}")
             self.create_project()
-        else:
+        elif self.project.mode == "Edit":
             self.msg(f"Updating project {full_name}")
-            self.update_project()
+            self.project.update_project()
+        else:
+            self.error(f"Bad mode: {self.project.mode}")
         event.Skip()
 
     def on_search(self, event):
@@ -259,70 +265,93 @@ class Application(wx.Frame):
 
     def on_number(self, event):
         logger.debug("on_number")
-        event.Skip()
+        pass
+        # We block any user activity in this field
 
     def on_project_name(self, event):
         logger.debug("on_project_name")
-        event.Skip()
+        if self.project.mode == "Edit":
+            # Changes to the project name are disallowed
+            pass
+        else:
+            self.project.name = self.projectName.GetValue()
+            event.Skip()
 
     def on_project_manager(self, event):
         logger.debug("on_project_manager")
+        self.project.manager = self.projectManager.GetValue()
         event.Skip()
 
     def on_project_type(self, event):
         logger.debug("on_project_type")
-        event.Skip()
+        # Get the index and set the type string
+        options = ['Other', 'Revit', 'CAD']
+        self.project.project_type = options[self.projectType.GetSelection()]
 
     def on_scope(self, event):
         logger.debug("on_scope")
+        self.project.scope = self.scope.GetValue()
+        logger.debug(f"Scope is {self.project.scope}")
         event.Skip()
 
     def on_contact_name(self, event):
         logger.debug("on_contact_name")
+        self.project.project_contact.name = self.contactName.GetValue()
         event.Skip()
 
     def on_contact_title(self, event):
         logger.debug("on_contact_title")
+        self.project.project_contact.title = self.contactTitle.GetValue()
         event.Skip()
 
     def on_contact_address(self, event):
         logger.debug("on_contact_address")
+        self.project.project_contact.address = self.contactAddress.GetValue()
         event.Skip()
 
     def on_contact_csz(self, event):
         logger.debug("on_contact_csz")
+        self.project.project_contact.csz = self.contactCSZ.GetValue()
         event.Skip()
 
     def on_contact_phone(self, event):
         logger.debug("on_contact_phone")
+        self.project.project_contact.phone = self.contactPhone.GetValue()
         event.Skip()
 
     def on_contact_email(self, event):
         logger.debug("on_contact_email")
+        self.project.project_contact.email = self.contactEmail.GetValue()
         event.Skip()
 
     def on_billing_name(self, event):
         logger.debug("on_billing_name")
+        self.project.billing_contact.name = self.billingName.GetValue()
         event.Skip()
 
     def on_billing_title(self, event):
         logger.debug("on_billing_title")
+        self.project.billing_contact.title = self.billingTitle.GetValue()
         event.Skip()
 
     def on_billing_address(self, event):
         logger.debug("on_billing_address")
+        self.project.billing_contact.address = self.billingAddress.GetValue()
         event.Skip()
 
     def on_billing_csz(self, event):
         logger.debug("on_billing_csz")
+        self.project.billing_contact.csz = self.billingCSZ.GetValue()
         event.Skip()
 
     def on_billing_phone(self, event):
         logger.debug("on_billing_phone")
+        self.project.billing_contact.phone = self.billingPhone.GetValue()
         event.Skip()
 
     def on_billing_email(self, event):
         logger.debug("on_billing_email")
+        self.project.billing_contact.email = self.billingEmail.GetValue()
         event.Skip()
 
     def transfer_from_GUI(self):
@@ -369,6 +398,16 @@ class Application(wx.Frame):
         # Fill the spreadsheet that should be already in the folder
         # Name the billing spreadsheet
         # Name the proposal fileEdited
+
+    def update_project(self):
+        """
+        Validate entries and update the spreadsheet.
+        """
+        valid, response = self.project.validate_existing()
+        if valid:
+            self.project.modify()
+        else:
+            self.error(response)
 
 
 def main():
