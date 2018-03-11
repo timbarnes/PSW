@@ -85,7 +85,7 @@ class Application(wx.Frame):
         row += 1
         label = wx.StaticText(self.panel, label="Project Type:")
         self.sizer.Add(label, pos=(row, 0), flag=wx.ALL, border=4)
-        type_list = ['None', 'Revit', 'CAD']
+        type_list = ['Empty', 'Revit', 'CAD']
         self.projectType = wx.RadioBox(self.panel, choices=type_list,
                                        majorDimension=1,
                                        style=wx.RA_SPECIFY_ROWS)
@@ -106,13 +106,13 @@ class Application(wx.Frame):
         row += 1
         self.contactTitle = single_line(row, "  Contact Title:")
         row += 1
-        self.contactAddress = single_line(row, "  Project Address:")
-        row += 1
-        self.contactCSZ = single_line(row, "  City / State / Zip:")
-        row += 1
         self.contactPhone = single_line(row, "  Contact phone")
         row += 1
         self.contactEmail = single_line(row, "  Contact email")
+        row += 1
+        self.contactAddress = single_line(row, "  Project Address:")
+        row += 1
+        self.contactCSZ = single_line(row, "  City / State / Zip:")
         row += 1
         self.sizer.Add(wx.StaticLine(self.panel), pos=(row, 0), span=(1, 4))
         row += 1
@@ -123,13 +123,13 @@ class Application(wx.Frame):
         row += 1
         self.billingTitle = single_line(row, "  Billing Title:")
         row += 1
-        self.billingAddress = single_line(row, "  Billing Address:")
-        row += 1
-        self.billingCSZ = single_line(row, "  City / State / Zip:")
-        row += 1
         self.billingPhone = single_line(row, "  Billing phone")
         row += 1
         self.billingEmail = single_line(row, "  Billing email")
+        row += 1
+        self.billingAddress = single_line(row, "  Billing Address:")
+        row += 1
+        self.billingCSZ = single_line(row, "  City / State / Zip:")
         row += 1
         self.sizer.Add(wx.StaticLine(self.panel), pos=(row, 0), span=(1, 4))
 
@@ -197,18 +197,18 @@ class Application(wx.Frame):
                 t = ["None", "Revit", "CAD"].index(self.project.type)
                 self.projectType.SetSelection(t)
                 self.scope.SetValue(self.project.scope)
-                self.contactName.SetValue(self.project.project_contact.name)
-                self.contactTitle.SetValue(self.project.project_contact.title)
-                self.contactPhone.SetValue(self.project.project_contact.phone)
-                self.contactEmail.SetValue(self.project.project_contact.email)
-                self.contactAddress.SetValue(self.project.project_contact.address)
-                self.contactCSZ.SetValue(self.project.project_contact.csz)
-                self.billingName.SetValue(self.project.billing_contact.name)
-                self.billingTitle.SetValue(self.project.billing_contact.title)
-                self.billingPhone.SetValue(self.project.billing_contact.phone)
-                self.billingEmail.SetValue(self.project.billing_contact.email)
-                self.billingAddress.SetValue(self.project.billing_contact.address)
-                self.billingCSZ.SetValue(self.project.billing_contact.csz)
+                self.contactName.SetValue(self.project.contact.name)
+                self.contactTitle.SetValue(self.project.contact.title)
+                self.contactPhone.SetValue(self.project.contact.phone)
+                self.contactEmail.SetValue(self.project.contact.email)
+                self.contactAddress.SetValue(self.project.contact.address)
+                self.contactCSZ.SetValue(self.project.contact.csz)
+                self.billingName.SetValue(self.project.billing.name)
+                self.billingTitle.SetValue(self.project.billing.title)
+                self.billingPhone.SetValue(self.project.billing.phone)
+                self.billingEmail.SetValue(self.project.billing.email)
+                self.billingAddress.SetValue(self.project.billing.address)
+                self.billingCSZ.SetValue(self.project.billing.csz)
                 self.project.is_live = True
             else:
                 self.error(self.project.fileError)
@@ -269,21 +269,21 @@ class Application(wx.Frame):
         """
         self.project.name = self.projectName.GetValue()
         self.project.project_manager = self.projectManager.GetValue()
-        options = ['Other', 'Revit', 'CAD']
-        self.project.project_type = options[self.projectType.GetSelection()]
+        options = ['Empty', 'Revit', 'CAD']
+        self.project.type = options[self.projectType.GetSelection()]
         self.project.scope = self.scope.GetValue()
-        self.project.project_contact.name = self.contactName.GetValue()
-        self.project.project_contact.title = self.contactTitle.GetValue()
-        self.project.project_contact.address = self.contactAddress.GetValue()
-        self.project.project_contact.csz = self.contactCSZ.GetValue()
-        self.project.project_contact.email = self.contactEmail.GetValue()
-        self.project.project_contact.phone = self.contactPhone.GetValue()
-        self.project.billing_contact.name = self.billingName.GetValue()
-        self.project.billing_contact.title = self.billingTitle.GetValue()
-        self.project.billing_contact.address = self.billingAddress.GetValue()
-        self.project.billing_contact.csz = self.billingCSZ.GetValue()
-        self.project.billing_contact.email = self.billingEmail.GetValue()
-        self.project.billing_contact.phone = self.billingPhone.GetValue()
+        self.project.contact.name = self.contactName.GetValue()
+        self.project.contact.title = self.contactTitle.GetValue()
+        self.project.contact.address = self.contactAddress.GetValue()
+        self.project.contact.csz = self.contactCSZ.GetValue()
+        self.project.contact.email = self.contactEmail.GetValue()
+        self.project.contact.phone = self.contactPhone.GetValue()
+        self.project.billing.name = self.billingName.GetValue()
+        self.project.billing.title = self.billingTitle.GetValue()
+        self.project.billing.address = self.billingAddress.GetValue()
+        self.project.billing.csz = self.billingCSZ.GetValue()
+        self.project.billing.email = self.billingEmail.GetValue()
+        self.project.billing.phone = self.billingPhone.GetValue()
 
     def create_project(self):
         """

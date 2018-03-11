@@ -49,9 +49,10 @@ class Project():
         self.scope = None
         self.exists = None
         self.manager = None
-        self.billing_contact = Contact()
-        self.project_contact = Contact()
+        self.billing = Contact()
+        self.contact = Contact()
         self.is_live = False  # Set to true when matched to an actual project
+        self.workbook = None  # Store the openpyxl workbook handle
         self.mode = None
         self.fileError = None  # Find out why a file can't be locked
         # List of all folders in PROJECT_ROOT
@@ -187,24 +188,23 @@ class Project():
             # We should lock the file
             try:
                 logger.debug(f"openpyxl is attempting to open {filename}")
-                pf = openpyxl.load_workbook(filename)
-                sheet = pf.active
+                self.workbook = openpyxl.load_workbook(filename)
+                sheet = self.workbook.active
                 self.manager = sheet['C6'].value
                 self.type = sheet['C8'].value
                 self.scope = sheet['C10'].value
-                self.project_contact.name = sheet['C12'].value
-                self.project_contact.title = sheet['C13'].value
-                self.project_contact.phone = sheet['C14'].value
-                self.project_contact.email = sheet['C15'].value
-                self.project_contact.address = sheet['C17'].value
-                self.project_contact.csz = sheet['C18'].value
-
-                self.billing_contact.name = sheet['C21'].value
-                self.billing_contact.title = sheet['C22'].value
-                self.billing_contact.phone = sheet['C23'].value
-                self.billing_contact.email = sheet['C24'].value
-                self.billing_contact.address = sheet['C26'].value
-                self.billing_contact.csz = sheet['C27'].value
+                self.contact.name = sheet['C12'].value
+                self.contact.title = sheet['C13'].value
+                self.contact.phone = sheet['C14'].value
+                self.contact.email = sheet['C15'].value
+                self.contact.address = sheet['C17'].value
+                self.contact.csz = sheet['C18'].value
+                self.billing.name = sheet['C20'].value
+                self.billing.title = sheet['C21'].value
+                self.billing.phone = sheet['C22'].value
+                self.billing.email = sheet['C23'].value
+                self.billing.address = sheet['C25'].value
+                self.billing.csz = sheet['C26'].value
                 # Keep it open for writing changes
                 # pf.close()
                 return True
@@ -241,19 +241,19 @@ class Project():
         if len(self.scope) < 10:
             logger.error("Provide scope description")
             return False, "Provide scope description"
-        if self.project_contact.phone != "":
+        if self.contact.phone != "":
             try:
-                p = parse(self.project_contact.phone)
+                p = parse(self.contact.phone)
             except NumberParseException:
-                p = parse(self.project_contact.phone, 'US')
-        if self.project_contact.email != "":
-            if validate_email(self.project_contact.email):
+                p = parse(self.contact.phone, 'US')
+        if self.contact.email != "":
+            if validate_email(self.contact.email):
                 pass
             else:
                 logger.error("Invalid project contact email address")
                 return False, "Invalid project contact email address"
-        if self.billing_contact.email != "":
-            if validate_email(self.billing_contact.email):
+        if self.billing.email != "":
+            if validate_email(self.billing.email):
                 pass
             else:
                 logger.error("Invalid billing contact email address")
@@ -264,9 +264,34 @@ class Project():
     def update_project(self):
         """
         Write out changes to the spreadsheet in an existing project.
+        Assumes data is in the record and has been validated.
         """
         logger.debug("Called update_project")
-        print(self.scope)
+        sheet = self.workbook.active
+        sheet['C6'].value = self.manager
+        sheet['C8'].value = self.type
+        sheet['C10'].value = self.scope
+        sheet['C12'].value = self.contact.name
+        sheet['C13'].value = self.contact.title
+        sheet['C14'].value = self.contact.phone
+        sheet['C15'].value = self.contact.email
+        sheet['C17'].value = self.contact.address
+        sheet['C18'].value = self.contact.csz
+        sheet['C20'].value = self.billing.name
+        sheet['C21'].value = self.billing.title
+        sheet['C22'].value = self.billing.phone
+        sheet['C23'].value = self.billing.email
+        sheet['C25'].value = self.billing.address
+        sheet['C26'].value = self.billing.csz
+        filename = os.path.join(self.path_to_project(), INFO_FILE)
+        self.workbook.save(filename)
+        logger.debug("File written")
+
+    def close_project(self):
+        """
+        Close out the worksheet before exiting.
+        """
+        self.workbook.close()
 
 
 # def getProjectData(app):
