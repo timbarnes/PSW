@@ -2,6 +2,7 @@
 import os
 import shutil
 import datetime
+import re
 import openpyxl
 import logging
 from validate_email import validate_email
@@ -93,9 +94,12 @@ class Project():
         """
         Return a list of folders that contain the search string.
         """
+        pat = re.compile(r'\d\d\d\d\.\d\d')
         folder_list = os.listdir(PROJECT_ROOT)
-        return [x for x in folder_list
-                if x.upper().count(search_str.upper()) > 0]
+        folder_list = [x for x in folder_list
+                       if x.upper().count(search_str.upper()) > 0]
+        folder_list = [x for x in folder_list if pat.match(x)]
+        return folder_list
 
     def next_number(self):
         """
@@ -192,7 +196,8 @@ class Project():
             # TODO: We should lock the file
             try:
                 logger.debug(f"openpyxl is attempting to open {filename}")
-                self.workbook = openpyxl.load_workbook(filename)
+                self.workbook = openpyxl.load_workbook(filename,
+                                                       data_only=True)
             except Exception as e:
                 logger.error(f"Project spreadsheet open failed: {filename}")
                 logger.error(f"Error was: {e}")
@@ -206,28 +211,36 @@ class Project():
     def load(self):
         """
         Load project information from the folder and spreadsheet.
-        File should have been opened already
+        File is assumed to be open already.
         """
+        def get(sheet, col, row):
+            """
+            Gets value from sheet cell, replacing None with ""
+            """
+            v = sheet.cell(row=row, column=col).value
+            return (v if v else "")
+
         try:
+            logger.debug("Loading from spreadsheet")
             sheet = self.workbook.active
-            self.manager = sheet['C6'].value
-            self.type = sheet['C8'].value
-            self.scope = sheet['C10'].value
-            self.contact.name = sheet['C12'].value
-            self.contact.title = sheet['C13'].value
-            self.contact.phone = sheet['C14'].value
-            self.contact.email = sheet['C15'].value
-            self.contact.address = sheet['C17'].value
-            self.contact.csz = sheet['C18'].value
-            self.billing.name = sheet['C20'].value
-            self.billing.title = sheet['C21'].value
-            self.billing.phone = sheet['C22'].value
-            self.billing.email = sheet['C23'].value
-            self.billing.address = sheet['C25'].value
-            self.billing.csz = sheet['C26'].value
+            self.manager = get(sheet, 3, 6)
+            self.type = get(sheet, 3, 8)
+            self.scope = get(sheet, 3, 10)
+            self.contact.name = get(sheet, 3, 12)
+            self.contact.title = get(sheet, 3, 13)
+            self.contact.phone = get(sheet, 3, 14)
+            self.contact.email = get(sheet, 3, 15)
+            self.contact.address = get(sheet, 3, 17)
+            self.contact.csz = get(sheet, 3, 18)
+            self.billing.name = get(sheet, 3, 20)
+            self.billing.title = get(sheet, 3, 21)
+            self.billing.phone = get(sheet, 3, 22)
+            self.billing.email = get(sheet, 3, 23)
+            self.billing.address = get(sheet, 3, 25)
+            self.billing.csz = get(sheet, 3, 26)
             return True
         except Exception as e:
-            logger.error(f"Project spreadsheet write failed")
+            logger.error(f"Project spreadsheet load failed")
             logger.error(f"Error was: {e}")
             self.fileError = str(e)
             return False
@@ -338,9 +351,10 @@ class Project():
 
     def close(self):
         """
-        Close out the worksheet before exiting.
+        Close out the worksheet if it's open before exiting or creating new.
         """
-        self.workbook.close()
+        if self.workbook:
+            self.workbook.close()
         # TODO: unlock the file
 
     def create(self):

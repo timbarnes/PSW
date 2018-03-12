@@ -15,8 +15,8 @@ class Application(wx.Frame):
     def __init__(self, master=None):
         # Create the main frame
         wx.Frame.__init__(self, None, wx.ID_ANY,
-                          'Studio G Project Editor', size=(550, 775))
-        self.project = ps.Project()
+                          'Studio G Project Editor', size=(580, 825))
+        self.project = None
         self.build_GUI()
 
     def build_GUI(self):
@@ -46,29 +46,32 @@ class Application(wx.Frame):
         # # Create the sizer
         self.sizer = wx.GridBagSizer(4, 4)
         row = 0
-        label = wx.StaticText(self.panel, label="Mode:")
+        label = wx.StaticText(self.panel, label="New Project:")
         self.sizer.Add(label, pos=(row, 0), flag=wx.ALL, border=4)
-        self.newButton = wx.Button(self.panel, label="Create New Project")
+        self.newButton = wx.Button(self.panel, label="Start a New Project")
         self.newButton.Bind(wx.EVT_BUTTON, self.on_new)
         self.sizer.Add(self.newButton, pos=(row, 1), flag=wx.ALL, border=5)
-        self.editButton = wx.Button(self.panel, label="Load Project Info.")
-        self.editButton.Bind(wx.EVT_BUTTON, self.on_edit)
-        self.sizer.Add(self.editButton, pos=(row, 2), flag=wx.ALL, border=5)
+        self.modeLabel = wx.StaticText(self.panel, label="Enter project data")
+        self.sizer.Add(self.modeLabel, pos=(row, 2), flag=wx.ALL, border=5)
         self.updateButton = wx.Button(self.panel, label="GO")
         self.updateButton.Bind(wx.EVT_BUTTON, self.on_go)
-        self.sizer.Add(self.updateButton, pos=(row, 3), flag=wx.ALL, border=5)
+        self.sizer.Add(self.updateButton, pos=(row, 3), span=(2, 1),
+                       flag=wx.EXPAND | wx.ALL, border=5)
         row += 1
-        self.sizer.Add(wx.StaticLine(self.panel), pos=(row, 0), span=(1, 4))
-        row += 1
-        label = wx.StaticText(self.panel, label="Search:")
+        label = wx.StaticText(self.panel, label="Update Existing:")
         self.sizer.Add(label, pos=(row, 0), flag=wx.ALL, border=4)
         self.searchString = wx.TextCtrl(self.panel)
         self.searchString.Bind(wx.EVT_KEY_DOWN, self.on_check_search)
-        self.sizer.Add(self.searchString, pos=(row, 1),  span=(0, 2),
+        self.sizer.Add(self.searchString, pos=(row, 1),  # span=(0, 2),
                        flag=wx.EXPAND | wx.ALL, border=5)
-        self.searchButton = wx.Button(self.panel, label="Find Project")
+        self.searchButton = wx.Button(self.panel, label="Find Existing Project")
         self.searchButton.Bind(wx.EVT_BUTTON, self.on_search)
-        self.sizer.Add(self.searchButton, pos=(row, 3), flag=wx.ALL, border=5)
+        self.sizer.Add(self.searchButton, pos=(row, 2), flag=wx.ALL, border=5)
+        row += 1
+        self.sizer.Add(wx.StaticLine(self.panel), pos=(row, 0), span=(1, 4))
+        row += 1
+        label = wx.StaticText(self.panel, label="BASICS")
+        self.sizer.Add(label, pos=(row, 1), span=(0, 3), flag=wx.EXPAND)
         row += 1
         label = wx.StaticText(self.panel, label="Project number && name:")
         self.sizer.Add(label, pos=(row, 0), flag=wx.ALL, border=4)
@@ -85,13 +88,15 @@ class Application(wx.Frame):
         row += 1
         label = wx.StaticText(self.panel, label="Project Type:")
         self.sizer.Add(label, pos=(row, 0), flag=wx.ALL, border=4)
-        type_list = ['Empty', 'Revit', 'CAD']
+        type_list = ['Default', 'Revit', 'CAD']
         self.projectType = wx.RadioBox(self.panel, choices=type_list,
                                        majorDimension=1,
                                        style=wx.RA_SPECIFY_ROWS)
         # self.projectType.Bind(wx.EVT_RADIOBUTTON, self.on_project_type)
         self.sizer.Add(self.projectType, pos=(row, 1), span=(0, 4),
                        flag=wx.ALL, border=5)
+        row += 1
+        self.sizer.Add(wx.StaticLine(self.panel), pos=(row, 0), span=(1, 4))
         row += 1
         self.sizer.Add(wx.StaticLine(self.panel), pos=(row, 0), span=(1, 4))
         row += 1
@@ -110,7 +115,8 @@ class Application(wx.Frame):
         row += 1
         self.contactEmail = single_line(row, "  Contact email", self.clean)
         row += 1
-        self.contactAddress = single_line(row, "  Project Address:", self.clean)
+        self.contactAddress = single_line(row, "  Project Address:",
+                                          self.clean)
         row += 1
         self.contactCSZ = single_line(row, "  City / State / Zip:", self.clean)
         row += 1
@@ -127,7 +133,8 @@ class Application(wx.Frame):
         row += 1
         self.billingEmail = single_line(row, "  Billing email", self.clean)
         row += 1
-        self.billingAddress = single_line(row, "  Billing Address:", self.clean)
+        self.billingAddress = single_line(row, "  Billing Address:",
+                                          self.clean)
         row += 1
         self.billingCSZ = single_line(row, "  City / State / Zip:", self.clean)
         row += 1
@@ -170,30 +177,39 @@ class Application(wx.Frame):
         self.projectNumber.SetValue(f"{year}.{num}")
         self.projectName.SetValue(name)
         logger.debug(item.GetText())
+        self.on_edit(event)
 
     def on_new(self, event):
-        logger.debug("Setting mode to New")
+        logger.debug("Starting new project")
+        if self.project:
+            # Check before closing the existing project
+            self.check_close()
+        self.project = ps.Project()  # Make a new project record
         full_number = self.project.start_new()
         # Prime the GUI appropriately
         self.projectNumber.SetValue(full_number)
-        self.searchButton.Enable(False)
-        self.searchString.Enable(False)
         self.msg(f"Creating new project #{full_number}")
+        self.projectNumber.Enable(False)
+
         event.Skip()
 
     def on_edit(self, event):
         logger.debug("Setting mode to Edit")
         self.project.mode = 'Edit'
-        self.searchButton.Enable(True)
-        self.searchString.Enable(True)
+        self.projectNumber.Enable(False)
+        self.projectName.Enable(False)
+        # self.searchButton.Enable(True)
+        # self.searchString.Enable(True)
         if self.project.number and self.project.name:
             # We have identified the project
             if self.project.open() and self.project.load():
-                self.msg("Project loaded")
+                self.msg(f"Loaded {self.project.get_full_name()}")
                 # Populate the GUI from the record
                 self.projectManager.SetValue(self.project.manager)
-                logger.debug(self.project.type)
-                t = ["Other", "Revit", "CAD"].index(self.project.type)
+                try:
+                    t = ["Default", "Revit", "CAD"].index(self.project.type)
+                except ValueError:
+                    t = 0  # Default project type
                 self.projectType.SetSelection(t)
                 self.scope.SetValue(self.project.scope)
                 self.contactName.SetValue(self.project.contact.name)
@@ -243,7 +259,11 @@ class Application(wx.Frame):
         """
         Search for and select a folder.
         """
-        logger.debug("Called Search")
+        logger.debug("Looking for an existing project")
+        if self.project:
+            # We have one open and should check before doing a new one
+            pass
+        self.project = ps.Project()  # Make a new one
         search_string = self.searchString.GetValue()
         results = self.project.match_folder(search_string)
         logger.debug(results)
@@ -268,6 +288,20 @@ class Application(wx.Frame):
             self.project.name = self.projectName.GetValue()
             event.Skip()
 
+    def check_close(self):
+        """
+        Prompt to see if the user wants to close the file, close if yes.
+        """
+        if self.project:
+            if wx.MessageBox("The current project will be closed.",
+                             "Do you really want to abandon changes?",
+                             wx.YES_NO) != wx.YES:
+                event.Veto()
+                return
+            else:
+                self.project.close()  # Close the spreadsheet
+                # Should not need to update GUI - new / edit will do it
+
     def clean(self, event):
         """
         Cleans text fields.
@@ -287,7 +321,7 @@ class Application(wx.Frame):
         """
         self.project.name = self.projectName.GetValue()
         self.project.manager = self.projectManager.GetValue()
-        options = ['Other', 'Revit', 'CAD']
+        options = ['Default', 'Revit', 'CAD']
         self.project.type = options[self.projectType.GetSelection()]
         self.project.scope = self.scope.GetValue()
         self.project.contact.name = self.contactName.GetValue()
