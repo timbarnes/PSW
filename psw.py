@@ -183,14 +183,17 @@ class Application(wx.Frame):
         logger.debug("Starting new project")
         if self.project:
             # Check before closing the existing project
-            self.check_close()
+            if self.check_close():
+                pass
+            else:
+                self.msg("Returning to project")
+                return
         self.project = ps.Project()  # Make a new project record
         full_number = self.project.start_new()
         # Prime the GUI appropriately
         self.projectNumber.SetValue(full_number)
         self.msg(f"Creating new project #{full_number}")
         self.projectNumber.Enable(False)
-
         event.Skip()
 
     def on_edit(self, event):
@@ -198,8 +201,6 @@ class Application(wx.Frame):
         self.project.mode = 'Edit'
         self.projectNumber.Enable(False)
         self.projectName.Enable(False)
-        # self.searchButton.Enable(True)
-        # self.searchString.Enable(True)
         if self.project.number and self.project.name:
             # We have identified the project
             if self.project.open() and self.project.load():
@@ -260,9 +261,12 @@ class Application(wx.Frame):
         Search for and select a folder.
         """
         logger.debug("Looking for an existing project")
-        if self.project:
-            # We have one open and should check before doing a new one
-            pass
+        if self.project:  # Check before doing a new one
+            if self.check_close():
+                pass
+            else:
+                self.msg("Returning to project")
+                return
         self.project = ps.Project()  # Make a new one
         search_string = self.searchString.GetValue()
         results = self.project.match_folder(search_string)
@@ -292,28 +296,25 @@ class Application(wx.Frame):
         """
         Prompt to see if the user wants to close the file, close if yes.
         """
+        logger.debug("Check_close")
         if self.project:
             if wx.MessageBox("The current project will be closed.",
                              "Do you really want to abandon changes?",
                              wx.YES_NO) != wx.YES:
                 event.Veto()
-                return
+                return False
             else:
-                self.project.close()  # Close the spreadsheet
+                self.project.close()
+                return True  # Close the spreadsheet
                 # Should not need to update GUI - new / edit will do it
+        else:
+            return True
 
     def clean(self, event):
         """
         Cleans text fields.
         """
-        val = event.GetKeyCode()
-        if val == wx.WXK_TAB:
-            ctl = self.panel.Window_FindFocus()
-            ctl.Navigate()
-        elif chr(val) in ps.BAD_CHARS:
-            pass
-        else:
-            event.Skip()
+        event.Skip()
 
     def transfer_from_GUI(self):
         """

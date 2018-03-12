@@ -10,11 +10,14 @@ from phonenumbers import parse, NumberParseException
 
 CURRENT_YEAR = str(datetime.datetime.now().year)   # This year
 PROJECT_ROOT = './Test'                        # Where we look (P drive)
-CAD_SOURCE = os.path.join(PROJECT_ROOT, 'CAD_Template')
-REVIT_SOURCE = os.path.join(PROJECT_ROOT, 'Revit_Template')
-DEFAULT_SOURCE = os.path.join(PROJECT_ROOT, 'Default_Template')
+CAD_SOURCE = os.path.join(PROJECT_ROOT,
+                          'Project_Templates', 'CAD_Template')
+REVIT_SOURCE = os.path.join(PROJECT_ROOT,
+                            'Project_Templates', 'Revit_Template')
+DEFAULT_SOURCE = os.path.join(PROJECT_ROOT,
+                              'Project_Templates', 'Default_Template')
 INFO_FILE = 'Project_Information.xlsx'
-BAD_CHARS = ',;:"\'\\`~!$%^=!#&{}[]|<>?*/\t\n'
+BAD_CHARS = ',;:"\'\\~!$%^=!#&{}[]|<>?*/\t\n'
 
 logger = logging.getLogger('__name__')
 stream_handler = logging.StreamHandler()
@@ -250,7 +253,7 @@ class Project():
         Sanitizes strings before writing to the database.
         """
         tr_table = str.maketrans('', '', BAD_CHARS)
-        clean = data.translate(tr_table)
+        clean = data.translate(None, BAD_CHARS)
         if clean == data:
             return True, clean
         else:
