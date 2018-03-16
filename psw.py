@@ -24,13 +24,13 @@ class Application(wx.Frame):
         Create all the elements of the UI and connect to variables.
         """
 
-        def single_line(row, label, callback=None):
+        def single_line(row, label, callback=None, style=wx.ALL):
             """
             Make a line with StaticText and TextCtrl and callback.
             """
             prompt = wx.StaticText(self.panel, label=label)
             self.sizer.Add(prompt, pos=(row, 0), flag=wx.ALL, border=4)
-            t = wx.TextCtrl(self.panel)
+            t = wx.TextCtrl(self.panel, style=style)
             if callback:
                 t.Bind(wx.EVT_KEY_DOWN, callback)
             self.sizer.Add(t, pos=(row, 1), span=(0, 3),
@@ -64,7 +64,8 @@ class Application(wx.Frame):
         self.searchString.Bind(wx.EVT_KEY_DOWN, self.on_check_search)
         self.sizer.Add(self.searchString, pos=(row, 1),  # span=(0, 2),
                        flag=wx.EXPAND | wx.ALL, border=5)
-        self.searchButton = wx.Button(self.panel, label="Find Existing Project")
+        self.searchButton = wx.Button(self.panel,
+                                      label="Find Existing Project")
         self.searchButton.Bind(wx.EVT_BUTTON, self.on_search)
         self.sizer.Add(self.searchButton, pos=(row, 2), flag=wx.ALL, border=5)
         row += 1
@@ -103,7 +104,8 @@ class Application(wx.Frame):
         label = wx.StaticText(self.panel, label="PROJECT INFORMATION")
         self.sizer.Add(label, pos=(row, 1), span=(0, 3), flag=wx.EXPAND)
         row += 1
-        self.scope = single_line(row, "Project Scope:", self.clean)
+        self.scope = single_line(row, "Project Scope:", self.clean,
+                                 style=wx.TE_MULTILINE)
         # Needs to be set to be multiline
         self.scope.SetMinSize(wx.Size(70, 70))
         row += 1
@@ -301,12 +303,10 @@ class Application(wx.Frame):
             if wx.MessageBox("The current project will be closed.",
                              "Do you really want to abandon changes?",
                              wx.YES_NO) != wx.YES:
-                event.Veto()
                 return False
             else:
                 self.project.close()
                 return True  # Close the spreadsheet
-                # Should not need to update GUI - new / edit will do it
         else:
             return True
 

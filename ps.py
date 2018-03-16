@@ -248,16 +248,15 @@ class Project():
             self.fileError = str(e)
             return False
 
-    def clean_data(self, data):
+    def clean(self, data):
         """
         Sanitizes strings before writing to the database.
         """
-        tr_table = str.maketrans('', '', BAD_CHARS)
-        clean = data.translate(None, BAD_CHARS)
-        if clean == data:
-            return True, clean
+        cl = data.translate(None, BAD_CHARS)
+        if cl == data:
+            return True, cl
         else:
-            return False, clean
+            return False, cl
 
     def validate(self):
         """
