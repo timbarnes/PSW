@@ -24,13 +24,16 @@ class Application(wx.Frame):
         Create all the elements of the UI and connect to variables.
         """
 
-        def single_line(row, label, callback=None, style=wx.ALL):
+        def single_line(row, label, callback=None, style=None):
             """
             Make a line with StaticText and TextCtrl and callback.
             """
             prompt = wx.StaticText(self.panel, label=label)
             self.sizer.Add(prompt, pos=(row, 0), flag=wx.ALL, border=4)
-            t = wx.TextCtrl(self.panel, style=style)
+            if style:
+                t = wx.TextCtrl(self.panel, style=style)
+            else:
+                t = wx.TextCtrl(self.panel)
             if callback:
                 t.Bind(wx.EVT_KEY_DOWN, callback)
             self.sizer.Add(t, pos=(row, 1), span=(0, 3),
@@ -50,24 +53,24 @@ class Application(wx.Frame):
         self.sizer.Add(label, pos=(row, 0), flag=wx.ALL, border=4)
         self.newButton = wx.Button(self.panel, label="Start a New Project")
         self.newButton.Bind(wx.EVT_BUTTON, self.on_new)
-        self.sizer.Add(self.newButton, pos=(row, 1), flag=wx.ALL, border=5)
+        self.sizer.Add(self.newButton, pos=(row, 1), flag=wx.ALL, border=4)
         self.modeLabel = wx.StaticText(self.panel, label="Enter project data")
-        self.sizer.Add(self.modeLabel, pos=(row, 2), flag=wx.ALL, border=5)
+        self.sizer.Add(self.modeLabel, pos=(row, 2), flag=wx.ALL, border=4)
         self.updateButton = wx.Button(self.panel, label="GO")
         self.updateButton.Bind(wx.EVT_BUTTON, self.on_go)
         self.sizer.Add(self.updateButton, pos=(row, 3), span=(2, 1),
-                       flag=wx.EXPAND | wx.ALL, border=5)
+                       flag=wx.EXPAND | wx.ALL, border=4)
         row += 1
         label = wx.StaticText(self.panel, label="Update Existing:")
         self.sizer.Add(label, pos=(row, 0), flag=wx.ALL, border=4)
-        self.searchString = wx.TextCtrl(self.panel)
-        self.searchString.Bind(wx.EVT_KEY_DOWN, self.on_check_search)
+        self.searchString = wx.TextCtrl(self.panel, style=wx.TE_PROCESS_ENTER)
+        self.searchString.Bind(wx.EVT_TEXT_ENTER, self.on_search)
         self.sizer.Add(self.searchString, pos=(row, 1),  # span=(0, 2),
-                       flag=wx.EXPAND | wx.ALL, border=5)
+                       flag=wx.EXPAND | wx.ALL, border=4)
         self.searchButton = wx.Button(self.panel,
                                       label="Find Existing Project")
         self.searchButton.Bind(wx.EVT_BUTTON, self.on_search)
-        self.sizer.Add(self.searchButton, pos=(row, 2), flag=wx.ALL, border=5)
+        self.sizer.Add(self.searchButton, pos=(row, 2), flag=wx.ALL, border=4)
         row += 1
         self.sizer.Add(wx.StaticLine(self.panel), pos=(row, 0), span=(1, 4))
         row += 1
@@ -79,11 +82,11 @@ class Application(wx.Frame):
         self.projectNumber = wx.TextCtrl(self.panel)
         self.projectNumber.Bind(wx.EVT_KEY_DOWN, self.on_number)
         self.sizer.Add(self.projectNumber, pos=(row, 1),
-                       flag=wx.ALL | wx.EXPAND, border=5)
+                       flag=wx.ALL | wx.EXPAND, border=4)
         self.projectName = wx.TextCtrl(self.panel)
         self.projectName.Bind(wx.EVT_KEY_DOWN, self.on_project_name)
         self.sizer.Add(self.projectName, pos=(row, 2),  span=(0, 3),
-                       flag=wx.EXPAND | wx.ALL, border=5)
+                       flag=wx.EXPAND | wx.ALL, border=4)
         row += 1
         self.projectManager = single_line(row, "Project Manager:", self.clean)
         row += 1
@@ -95,7 +98,7 @@ class Application(wx.Frame):
                                        style=wx.RA_SPECIFY_ROWS)
         # self.projectType.Bind(wx.EVT_RADIOBUTTON, self.on_project_type)
         self.sizer.Add(self.projectType, pos=(row, 1), span=(0, 4),
-                       flag=wx.ALL, border=5)
+                       flag=wx.ALL, border=4)
         row += 1
         self.sizer.Add(wx.StaticLine(self.panel), pos=(row, 0), span=(1, 4))
         row += 1
@@ -251,12 +254,6 @@ class Application(wx.Frame):
         else:
             self.error(f"Bad mode: {self.project.mode}")
         event.Skip()
-
-    def on_check_search(self, event):
-        if event.GetKeyCode() in [wx.WXK_RETURN, wx.WXK_TAB, wx.WXK_CONTROL_F]:
-            self.on_search(event)
-        else:
-            event.Skip()
 
     def on_search(self, event):
         """
